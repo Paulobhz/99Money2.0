@@ -3,7 +3,8 @@ program Money;
 uses
   System.StartUpCopy,
   FMX.Forms,
-  UnitLogin in 'UnitLogin.pas' {frmLogin};
+  UnitLogin in 'UnitLogin.pas' {frmLogin},
+  u99Permissions in 'Units\u99Permissions.pas';
 
 {$R *.res}
 
