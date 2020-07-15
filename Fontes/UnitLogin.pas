@@ -7,6 +7,11 @@ uses
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Objects,
   FMX.Layouts, FMX.Controls.Presentation, FMX.Edit, FMX.StdCtrls, FMX.TabControl,
   System.Actions, FMX.ActnList, u99Permissions, FMX.MediaLibrary.Actions,
+
+  {$IFDEF ANDROID}
+  FMX.VirtualKeyboard, FMX.Platform,
+  {$ENDIF}
+
   FMX.StdActns;
 
 type
@@ -21,7 +26,7 @@ type
     RoundRect2: TRoundRect;
     edt_login_senha: TEdit;
     Layout4: TLayout;
-    RoundRect3: TRoundRect;
+    rect_login: TRoundRect;
     Label1: TLabel;
     TabControl1: TTabControl;
     TabLogin: TTabItem;
@@ -85,6 +90,10 @@ type
     procedure FormShow(Sender: TObject);
     procedure ActLibraryDidFinishTaking(Image: TBitmap);
     procedure ActCameraDidFinishTaking(Image: TBitmap);
+    procedure FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
+      Shift: TShiftState);
+    procedure rect_loginClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     { Private declarations }
     permissao: T99Permissions;
@@ -99,6 +108,8 @@ var
 implementation
 
 {$R *.fmx}
+
+uses UnitPrincipal;
 
 procedure TFrmLogin.ActCameraDidFinishTaking(Image: TBitmap);
 begin
@@ -117,6 +128,12 @@ begin
     ActEscolher.Execute;
 end;
 
+procedure TFrmLogin.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+    Action := TCloseAction.caFree;
+    FrmLogin := nil;
+end;
+
 procedure TFrmLogin.FormCreate(Sender: TObject);
 begin
     permissao := T99Permissions.Create;
@@ -127,6 +144,49 @@ begin
     permissao.DisposeOf;
 end;
 
+procedure TFrmLogin.FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
+  Shift: TShiftState);
+{$IFDEF ANDROID}
+var
+    FService : IFMXVirtualKeyboardService;
+{$ENDIF}
+
+begin
+    {$IFDEF ANDROID}
+    if (Key = vkHardwareBack) then
+    begin
+        TPlatformServices.Current.SupportsPlatformService(IFMXVirtualKeyboardService,
+                                                          IInterface(FService));
+
+        if (FService <> nil) and
+           (TVirtualKeyboardState.Visible in FService.VirtualKeyBoardState) then
+        begin
+            // Botao back pressionado e teclado visivel...
+            // (apenas fecha o teclado)
+        end
+        else
+        begin
+            // Botao back pressionado e teclado NAO visivel...
+
+            if TabControl1.ActiveTab = TabConta then
+            begin
+                Key := 0;
+                ActLogin.Execute
+            end
+            else if TabControl1.ActiveTab = TabFoto then
+            begin
+                Key := 0;
+                ActConta.Execute
+            end
+            else if TabControl1.ActiveTab = TabEscolher then
+            begin
+                Key := 0;
+                ActFoto.Execute;
+            end;
+        end;
+    end;
+    {$ENDIF}
+end;
 procedure TFrmLogin.FormShow(Sender: TObject);
 begin
     TabControl1.ActiveTab := TabLogin;
@@ -170,6 +230,16 @@ end;
 procedure TFrmLogin.rect_conta_proximoClick(Sender: TObject);
 begin
     ActFoto.Execute;
+end;
+
+procedure TFrmLogin.rect_loginClick(Sender: TObject);
+begin
+    if NOT Assigned(FrmPrincipal) then
+        Application.CreateForm(TFrmPrincipal, FrmPrincipal);
+
+    Application.MainForm := FrmPrincipal;
+    FrmPrincipal.Show;
+    FrmLogin.Close;
 end;
 
 end.

@@ -3,6 +3,8 @@ unit UnitLogin;
 interface
 
 uses
+  u99Permissions,
+
   FMX.ActnList,
   FMX.Controls,
   FMX.Controls.Presentation,
@@ -11,19 +13,21 @@ uses
   FMX.Forms,
   FMX.Graphics,
   FMX.Layouts,
+  FMX.MediaLibrary.Actions,
   FMX.Objects,
+  FMX.Platform,
+  FMX.StdActns,
   FMX.StdCtrls,
   FMX.TabControl,
   FMX.Types,
+  FMX.VirtualKeyboard,
 
   System.Actions,
   System.Classes,
   System.SysUtils,
   System.Types,
   System.UITypes,
-  System.Variants,
-
-  u99Permissions, FMX.MediaLibrary.Actions, FMX.StdActns;
+  System.Variants;
 
 
 type
@@ -38,9 +42,9 @@ type
     RoundRect2: TRoundRect;
     edt_login_senha: TEdit;
     Layout4: TLayout;
-    RoundRect3: TRoundRect;
+    rect_login: TRoundRect;
     Label1: TLabel;
-    TabControl1: TTabControl;
+    TabControl: TTabControl;
     TabLogin: TTabItem;
     TabConta: TTabItem;
     TabFoto: TTabItem;
@@ -102,6 +106,10 @@ type
     procedure FormShow(Sender: TObject);
     procedure ActCameraDidFinishTaking(Image: TBitmap);
     procedure ActLibraryDidFinishTaking(Image: TBitmap);
+    procedure FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
+      Shift: TShiftState);
+    procedure rect_loginClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     { Private declarations }
     permissao : T99Permissions;
@@ -114,6 +122,9 @@ var
   frmLogin: TfrmLogin;
 
 implementation
+
+uses
+  UnitPrincipal;
 
 
 {$R *.fmx}
@@ -135,6 +146,12 @@ begin
     ActEscolher.Execute;
 end;
 
+procedure TfrmLogin.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+    Action   := TCloseAction.caFree;
+    frmLogin := nil;
+end;
+
 procedure TfrmLogin.FormCreate(Sender: TObject);
 begin
     permissao := T99Permissions.Create;
@@ -145,9 +162,55 @@ begin
     permissao.DisposeOf;
 end;
 
+procedure TfrmLogin.FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
+  Shift: TShiftState);
+{$IFDEF ANDROID}
+var
+    FService : IFMXVirtualKeyboardService;
+{$ENDIF}
+
+begin
+    {$IFDEF ANDROID}
+    if (Key = vkHardwareBack) then
+    begin
+        TPlatformServices.Current.SupportsPlatformService(IFMXVirtualKeyboardService,
+                                                          IInterface(FService));
+
+        if (FService <> nil) and
+           (TVirtualKeyboardState.Visible in FService.VirtualKeyBoardState) then
+        begin
+            // Botao back pressionado e teclado visivel...
+            // (apenas fecha o teclado)
+        end
+        else
+        begin
+            // Botao back pressionado e teclado NAO visivel...
+            Key := 0;
+
+            if TabControl.ActiveTab = TabConta then
+            begin
+                ActLogin.Execute
+            end
+            else if TabControl.ActiveTab = TabFoto then
+            begin
+                ActConta.Execute
+            end
+            else if TabControl.ActiveTab = TabEscolher then
+            begin
+                ActFoto.Execute;
+            end
+            else if TabControl.ActiveTab = TabLogin then
+            begin
+                Close;
+            end;
+        end;
+    end;
+    {$ENDIF}
+end;
+
 procedure TfrmLogin.FormShow(Sender: TObject);
 begin
-    TabControl1.ActiveTab := TabLogin;
+    TabControl.ActiveTab := TabLogin;
 end;
 
 procedure TfrmLogin.TrataErroPermissao(Sender: TObject);
@@ -192,6 +255,18 @@ end;
 procedure TfrmLogin.rect_conta_proximoClick(Sender: TObject);
 begin
     ActFoto.Execute
+end;
+
+procedure TfrmLogin.rect_loginClick(Sender: TObject);
+begin
+    if not Assigned(FrmPrincipal) then
+        Application.CreateForm(TFrmPrincipal,FrmPrincipal);
+
+    Application.MainForm := FrmPrincipal;
+    FrmPrincipal.Show;
+    frmLogin.Close;
+
+
 end;
 
 end.
